@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/midi-mixer-plugin/plugin.schema.json",
+  "version": "1.0.0",
+  "id": "ca.jaggernaut.midi-mixer.voicemeeter",
+  "name": "Voicemeeter",
+  "type": "node",
+  "main": "lib/index.js",
+  "icon": "voicemeeter.ico",
+  "settings": {
+    "vmstatus": {
+      "label": "Voicemeeter Status",
+      "type": "status",
+      "fallback": "Not connected"
+    }
+  },
+  "author": "Jaggernaut"
+}
