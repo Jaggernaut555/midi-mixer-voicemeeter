@@ -4,7 +4,7 @@
   "private": true,
   "description": "A Voicemeeter plugin for MIDI Mixer.",
   "files": [
-    "icon.svg",
+    "voicemeeter.ico",
     "PAGE.md",
     "plugin.json",
     "lib"
@@ -37,10 +37,11 @@
     "midi-mixer-plugin": "^0.3.0"
   },
   "bundledDependencies": [
-    "midi-mixer-plugin"
+    "midi-mixer-plugin",
+    "easy-voicemeeter-remote"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/midi-mixer/plugin-discord.git"
+    "url": "https://github.com/Jaggernaut555/midi-mixer-voicemeeter.git"
   }
 }

@@ -1,3 +1,4 @@
+# This is built on the alpha version of midi-mixer and will not work on the current 2.3.1 stable release
 # Voicemeeter
 
 Control Voicemeeter Strips and Busses via midi-mixer. Works with Voicemeeter, Voicemeeter Banana, and Voicemeeter Potato
