@@ -68,6 +68,17 @@ function convertGainToVolume(level: number) {
 }
 
 /**
+ * Clamp between 0 and 1 for voicemeeter
+ * @param value
+ */
+function clampBar(value:number) {
+  if (value == Number.NEGATIVE_INFINITY) {
+    return 0;
+  }
+  return Math.min(Math.max(0, value), 1)
+}
+
+/**
  * Set the amount of assignable items according to which version of voicemeeter was detected
  * 
  * @param version Detected version of voicemeeter
@@ -122,11 +133,10 @@ const init_strips = (strips: input[]) => {
 
     clearInterval(strip[i].meterInterval);
     strip[i].meterInterval = setInterval(() => {
-      // allows for more channel meters (e.g. left, right, centre, etc)
-      // let rawLevel = voicemeeter.getLevelByID(1, i)
-      // let meterlevel = ((rawLevel.l + rawLevel.r)/2) + 40
-      let meterlevel = (voicemeeter.getLevel(2,i)/2) + 40;
-      strip[i].meter = meterlevel/100
+      let rawlevel = voicemeeter.getLevelByID(2,i)
+      let averagelevel = (rawlevel.r + rawlevel.l)/2
+      let meterlevel = (averagelevel) / 60;
+      strip[i].meter = clampBar(meterlevel);
     }, strip[i].throttle);
   }
 }
@@ -158,11 +168,10 @@ const init_busses = () => {
 
     clearInterval(bus[i].meterInterval);
     bus[i].meterInterval = setInterval(() => {
-      // allows for more channel meters (e.g. left, right, centre, etc)
-      // let rawLevel = voicemeeter.getLevelByID(3, i)
-      // let meterlevel = ((rawLevel.l + rawLevel.r)/2) + 40
-      let meterlevel = (voicemeeter.getLevel(3,i)/2) + 40;
-      bus[i].meter = meterlevel/100
+      let rawlevel = voicemeeter.getLevelByID(3,i)
+      let averagelevel = (rawlevel.r + rawlevel.l)/2
+      let meterlevel = (averagelevel) / 60;
+      bus[i].meter = clampBar(meterlevel);
     }, bus[i].throttle);
   }
 }
@@ -205,7 +214,6 @@ const connectVM = async () => {
       }
     }, 50)
   })
-
 
   $MM.setSettingsStatus("vmstatus", "Connected");
 }
