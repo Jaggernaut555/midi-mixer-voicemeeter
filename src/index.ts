@@ -72,9 +72,6 @@ function convertGainToVolume(level: number) {
  * @param value
  */
 function clampBar(value:number) {
-  if (value == Number.NEGATIVE_INFINITY) {
-    return 0;
-  }
   return Math.min(Math.max(0, value), 1)
 }
 
