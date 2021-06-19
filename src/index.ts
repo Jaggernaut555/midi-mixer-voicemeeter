@@ -1,15 +1,14 @@
-// public
 import { Assignment, ButtonType } from "midi-mixer-plugin";
 
-const voicemeeter = require("easy-voicemeeter-remote")
+const voicemeeter = require("easy-voicemeeter-remote");
 const settingsP: Promise<Settings> = $MM.getSettings();
-let settings: Settings
+let settings: Settings;
 let strip: eAssignment[] = [];
 let bus: eAssignment[] = [];
 let stripCount = 0
 let busCount = 0;
 let vmInfo: voicemeeterInfo
-let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout
+let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
 
 
 interface Settings {
@@ -57,7 +56,7 @@ interface output {
  * Convert 0.0-1.0 to voicemeeter gain of -60 to 12
  */ 
 function convertVolumeToGain(level: number) {
-  return (level * 72) - 60
+  return (level * 72) - 60;
 }
 
 /**
@@ -68,11 +67,11 @@ function convertGainToVolume(level: number) {
 }
 
 /**
- * Clamp between 0 and 1 for voicemeeter
+ * Clamp between 0 and 1 for midi mixer volume/peak levels
  * @param value
  */
 function clampBar(value:number) {
-  return Math.min(Math.max(0, value), 1)
+  return Math.min(Math.max(0, value), 1);
 }
 
 /**
@@ -81,7 +80,7 @@ function clampBar(value:number) {
  * @param version Detected version of voicemeeter
  */
 const setMeterCount = (version: nmType) => {
-  console.log(`Detected ${nmType[version]}`)
+  log.info(`Detected ${nmType[version]}`)
   switch (version) {
     case nmType.voicemeeter:
       stripCount = 3;
@@ -130,8 +129,8 @@ const init_strips = (strips: input[]) => {
 
     clearInterval(strip[i].meterInterval);
     strip[i].meterInterval = setInterval(() => {
-      let rawlevel = voicemeeter.getLevelByID(2,i)
-      let averagelevel = (rawlevel.r + rawlevel.l)/2
+      let rawlevel = voicemeeter.getLevelByID(2,i);
+      let averagelevel = (rawlevel.r + rawlevel.l)/2;
       let meterlevel = (averagelevel) / 60;
       strip[i].meter = clampBar(meterlevel);
     }, strip[i].throttle);
@@ -165,8 +164,8 @@ const init_busses = () => {
 
     clearInterval(bus[i].meterInterval);
     bus[i].meterInterval = setInterval(() => {
-      let rawlevel = voicemeeter.getLevelByID(3,i)
-      let averagelevel = (rawlevel.r + rawlevel.l)/2
+      let rawlevel = voicemeeter.getLevelByID(3,i);
+      let averagelevel = (rawlevel.r + rawlevel.l)/2;
       let meterlevel = (averagelevel) / 60;
       bus[i].meter = clampBar(meterlevel);
     }, bus[i].throttle);
@@ -194,8 +193,8 @@ const connectVM = async () => {
   
   vmInfo = voicemeeter.getVoicemeeterInfo();
   voicemeeter.updateDeviceList();
-  console.log(voicemeeter.inputDevices);
-  console.log(voicemeeter.outputDevices);
+  log.verbose(voicemeeter.inputDevices);
+  log.verbose(voicemeeter.outputDevices);
   setMeterCount(vmInfo.index);
 
   await voicemeeter.getAllParameter().then((data:paramData) => {
@@ -221,16 +220,16 @@ const initVM = async () => {
     await voicemeeter.init()
     .catch((error: any) => {
       $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
-      $MM.showNotification("Voicemeeter Plugin Failed.")
-      console.log(error);  
+      $MM.showNotification("Voicemeeter Plugin failed to initialize.");
+      log.error(error);
     })
     .then(() => {
       $MM.setSettingsStatus("vmstatus", "Initialized");
 
       connectVM().catch((error: any) => {
         $MM.setSettingsStatus("vmstatus", "Failed to connect. Could not find running instance of Voicemeeter. Reactivate the plugin to try again.");
-        $MM.showNotification("Voicemeeter Plugin Failed.")
-        console.log(error);
+        $MM.showNotification("Voicemeeter Plugin failed to connect.");
+        log.error(error);
       })
     })
   }
@@ -252,8 +251,9 @@ const init = async () => {
     await initVM();
   }
   catch (error) {
-    console.log(error);
-    $MM.setSettingsStatus("vmstatus","Some error");
+    log.error(error);
+    $MM.setSettingsStatus("vmstatus","Unexpected error in Voicemeeter plugin initialization");
+    $MM.showNotification("Unexpected error in Voicemeeter plugin initialization");
   }
 }
 
