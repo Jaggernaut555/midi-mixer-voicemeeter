@@ -193,8 +193,8 @@ const connectVM = async () => {
   
   vmInfo = voicemeeter.getVoicemeeterInfo();
   voicemeeter.updateDeviceList();
-  log.verbose(voicemeeter.inputDevices);
-  log.verbose(voicemeeter.outputDevices);
+  console.log(voicemeeter.inputDevices);
+  console.log(voicemeeter.outputDevices);
   setMeterCount(vmInfo.index);
 
   await voicemeeter.getAllParameter().then((data:paramData) => {
