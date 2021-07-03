@@ -129,10 +129,10 @@ const init_strips = (strips: outParam[]) => {
   }
 }
 
-const init_busses = () => {
+const init_buses = (buses: outParam[]) => {
   for(let i = 0; i<busCount; i++) {
     bus[i] = new eAssignment(`Bus ${i}`, {
-      name: `Bus ${i}`
+      name: `Bus ${i}: ${buses[i].name}`
     });
 
     bus[i].on("volumeChanged", (level: number) => {
@@ -193,7 +193,7 @@ const connectVM = async () => {
 
     let a = data.strips;
     init_strips(data.strips);
-    init_busses();
+    init_buses(data.buses);
     update_all();
   
     clearInterval(vmUpdateInterval);
