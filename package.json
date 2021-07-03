@@ -33,12 +33,12 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "easy-voicemeeter-remote": "^0.0.3",
-    "midi-mixer-plugin": "^0.4.0"
+    "midi-mixer-plugin": "^0.4.0",
+    "ts-easy-voicemeeter-remote": "^1.0.5"
   },
   "bundledDependencies": [
     "midi-mixer-plugin",
-    "easy-voicemeeter-remote"
+    "ts-easy-voicemeeter-remote"
   ],
   "repository": {
     "type": "git",

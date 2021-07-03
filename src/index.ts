@@ -1,27 +1,19 @@
 import { Assignment, ButtonType } from "midi-mixer-plugin";
-
-const voicemeeter = require("easy-voicemeeter-remote");
+import {voicemeeter, outParam, VoicemeeterType} from "ts-easy-voicemeeter-remote";
+let vm = new voicemeeter();
 const settingsP: Promise<Settings> = $MM.getSettings();
 let settings: Settings;
 let strip: eAssignment[] = [];
 let bus: eAssignment[] = [];
 let stripCount = 0
 let busCount = 0;
-let vmInfo: voicemeeterInfo
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
-
 
 interface Settings {
 }
 
 class eAssignment extends Assignment {
   meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout
-}
-
-interface voicemeeterInfo {
-  name?: string
-  index: nmType
-  version?: string
 }
 
 enum nmType {
@@ -79,18 +71,18 @@ function clampBar(value:number) {
  * 
  * @param version Detected version of voicemeeter
  */
-const setMeterCount = (version: nmType) => {
+const setMeterCount = (version: VoicemeeterType) => {
   log.info(`Detected ${nmType[version]}`)
   switch (version) {
-    case nmType.voicemeeter:
+    case VoicemeeterType.voicemeeter:
       stripCount = 3;
       busCount = 2;
       break;
-    case nmType.banana:
+    case VoicemeeterType.voicemeeterBanana:
       stripCount = 5;
       busCount = 5;
       break;
-    case nmType.potato:
+    case VoicemeeterType.voicemeeterPotato:
       stripCount = 8;
       busCount = 8;
       break;
@@ -100,7 +92,7 @@ const setMeterCount = (version: nmType) => {
   }
 }
 
-const init_strips = (strips: input[]) => {
+const init_strips = (strips: outParam[]) => {
   for(let i = 0; i<stripCount; i++) {
     strip[i] = new eAssignment(`Strip ${i}`, {
       name: `Strip ${i}: ${strips[i].name}`
@@ -110,12 +102,12 @@ const init_strips = (strips: input[]) => {
 
     strip[i].on("volumeChanged", (level: number) => {
       strip[i].volume = level;
-      voicemeeter.setStripGain(i, convertVolumeToGain(level));
+      vm.setStripParameter("gain",i, convertVolumeToGain(level));
     });
     
     strip[i].on("mutePressed", () => {
       strip[i].muted = !strip[i].muted;
-      voicemeeter.setStripMute(i, strip[i].muted);
+      vm.setStripParameter("mute", i, strip[i].muted)
     });
     
     strip[i].on("assignPressed", () => {
@@ -124,13 +116,13 @@ const init_strips = (strips: input[]) => {
     
     strip[i].on("runPressed", () => {
       strip[i].running = !strip[i].running;
-      voicemeeter.setStripSolo(i, strip[i].running);
+      vm.setStripParameter("solo", i, strip[i].muted)
     });
 
     clearInterval(strip[i].meterInterval);
     strip[i].meterInterval = setInterval(() => {
-      let rawlevel = voicemeeter.getLevelByID(2,i);
-      let averagelevel = (rawlevel.r + rawlevel.l)/2;
+      let rawlevel = vm.getLevelByID(2, i);
+      let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0))/2;
       let meterlevel = (averagelevel) / 60;
       strip[i].meter = clampBar(meterlevel);
     }, strip[i].throttle);
@@ -145,13 +137,12 @@ const init_busses = () => {
 
     bus[i].on("volumeChanged", (level: number) => {
       bus[i].volume = level;
-      voicemeeter.setBusGain(i,convertVolumeToGain(level));
+      vm.setBusParameter("gain", i, convertVolumeToGain(level))
     });
     
     bus[i].on("mutePressed", () => {
       bus[i].muted = !bus[i].muted;
-      voicemeeter.setBusMute(i, bus[i].muted);
-
+      vm.setBusParameter("mute",i, bus[i].muted);
     });
     
     bus[i].on("assignPressed", () => {
@@ -164,8 +155,8 @@ const init_busses = () => {
 
     clearInterval(bus[i].meterInterval);
     bus[i].meterInterval = setInterval(() => {
-      let rawlevel = voicemeeter.getLevelByID(3,i);
-      let averagelevel = (rawlevel.r + rawlevel.l)/2;
+      let rawlevel = vm.getLevelByID(3, i);
+      let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0))/2;
       let meterlevel = (averagelevel) / 60;
       bus[i].meter = clampBar(meterlevel);
     }, bus[i].throttle);
@@ -173,13 +164,13 @@ const init_busses = () => {
 }
 
 const update_all = () => {
-  voicemeeter.getAllParameter().then((data:paramData) => {
-    data.inputs.forEach((i) => {
+  vm.getAllParameter().then((data) => {
+    data.strips.forEach((i) => {
       strip[i.id].muted = i.mute;
       strip[i.id].running = i.solo;
       strip[i.id].volume = convertGainToVolume(i.gain);
     })
-    data.outputs.forEach((i) => {
+    data.buses.forEach((i) => {
       bus[i.id].muted = i.mute;
       bus[i.id].volume = convertGainToVolume(i.gain);
     })
@@ -189,23 +180,25 @@ const update_all = () => {
 const connectVM = async () => {
   $MM.setSettingsStatus("vmstatus", "Connecting");
 
-  voicemeeter.login();
+  vm.login();
   
-  vmInfo = voicemeeter.getVoicemeeterInfo();
-  voicemeeter.updateDeviceList();
-  console.log(voicemeeter.inputDevices);
-  console.log(voicemeeter.outputDevices);
-  setMeterCount(vmInfo.index);
+  let vminfo = vm.getVoicemeeterInfo();
+  vm.updateDeviceList();
+  console.log(vm.inputDevices);
+  console.log(vm.outputDevices);
+  setMeterCount(vminfo.type);
 
-  await voicemeeter.getAllParameter().then((data:paramData) => {
+  await vm.getAllParameter().then((data) => {
 
-    init_strips(data.inputs);
+
+    let a = data.strips;
+    init_strips(data.strips);
     init_busses();
     update_all();
   
     clearInterval(vmUpdateInterval);
     vmUpdateInterval = setInterval(() => {
-      if (voicemeeter.isParametersDirty()) {
+      if (vm.isParametersDirty()) {
         update_all();
       }
     }, 50)
@@ -215,9 +208,9 @@ const connectVM = async () => {
 }
 
 const initVM = async () => {
-  if (!voicemeeter.isInitialised && !voicemeeter.isConnected) {
+  if (!vm.isInitialised && !vm.isConnected) {
     console.log("Attempting connection");
-    await voicemeeter.init()
+    await vm.init()
     .catch((error: any) => {
       $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
       $MM.showNotification("Voicemeeter Plugin failed to initialize.");
@@ -233,15 +226,15 @@ const initVM = async () => {
       })
     })
   }
-  else if (voicemeeter.isInitialised && !voicemeeter.isConnected) {
-    voicemeeter.isInitialised = false;
+  else if (vm.isInitialised && !vm.isConnected) {
+    vm.isInitialised = false;
     initVM();
   }
 }
 
 $MM.onClose(async () => {
-  if (voicemeeter.isInitialised && voicemeeter.isConnected) {
-    voicemeeter.logout();
+  if (vm.isInitialised && vm.isConnected) {
+    vm.logout();
   }
 })
 
