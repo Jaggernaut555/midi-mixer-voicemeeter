@@ -242,13 +242,9 @@ $MM.onClose(async () => {
 
 async function initSettings() {
   let config: Record<string,any> = await $MM.getSettings();
-  // TODO: make sure this is a number
+  // "fallback" plugin setting doesn't seem to work
   settings = {
-    maxdb: config["maxdb"],
-  }
-  if (!settings.maxdb) {
-    // fallback setting doesn't seem to work
-    settings.maxdb = 12
+    maxdb: Number(config["maxdb"]) || 12,
   }
 }
 
