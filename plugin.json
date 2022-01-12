@@ -7,6 +7,11 @@
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
   "settings": {
+    "maxdb": {
+      "label": "Max db. (Reload after changing this)",
+      "type": "text",
+      "fallback": "12"
+    },
     "vmstatus": {
       "label": "Voicemeeter Status",
       "type": "status",

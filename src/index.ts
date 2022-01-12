@@ -1,7 +1,6 @@
 import { Assignment, ButtonType } from "midi-mixer-plugin";
 import {voicemeeter, outParam, VoicemeeterType} from "ts-easy-voicemeeter-remote";
 let vm = new voicemeeter();
-const settingsP: Promise<Settings> = $MM.getSettings();
 let settings: Settings;
 let strip: eAssignment[] = [];
 let bus: eAssignment[] = [];
@@ -10,6 +9,7 @@ let busCount = 0;
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
 
 interface Settings {
+  maxdb: number;
 }
 
 class eAssignment extends Assignment {
@@ -102,7 +102,8 @@ const init_strips = (strips: outParam[]) => {
 
     strip[i].on("volumeChanged", (level: number) => {
       strip[i].volume = level;
-      vm.setStripParameter("gain",i, convertVolumeToGain(level));
+      let vol = Math.min(settings.maxdb, convertVolumeToGain(level));
+      vm.setStripParameter("gain",i, vol);
     });
     
     strip[i].on("mutePressed", () => {
@@ -137,7 +138,8 @@ const init_buses = (buses: outParam[]) => {
 
     bus[i].on("volumeChanged", (level: number) => {
       bus[i].volume = level;
-      vm.setBusParameter("gain", i, convertVolumeToGain(level))
+      let vol = Math.min(settings.maxdb, convertVolumeToGain(level));
+      vm.setBusParameter("gain", i, vol);
     });
     
     bus[i].on("mutePressed", () => {
@@ -238,9 +240,21 @@ $MM.onClose(async () => {
   }
 })
 
+async function initSettings() {
+  let config: Record<string,any> = await $MM.getSettings();
+  // TODO: make sure this is a number
+  settings = {
+    maxdb: config["maxdb"],
+  }
+  if (!settings.maxdb) {
+    // fallback setting doesn't seem to work
+    settings.maxdb = 12
+  }
+}
+
 const init = async () => {
   try {
-    settings = await settingsP
+    initSettings();
     await initVM();
   }
   catch (error) {
