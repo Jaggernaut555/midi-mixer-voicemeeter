@@ -246,7 +246,7 @@ async function initSettings() {
   let config: Record<string,any> = await $MM.getSettings();
   // "fallback" plugin setting doesn't seem to work
   settings = {
-    maxdb: Number(config["maxdb"]) || 12,
+    maxdb: isNaN(parseFloat(config["maxdb"])) ? 12 : parseFloat(config["maxdb"]),
   }
 }
 
