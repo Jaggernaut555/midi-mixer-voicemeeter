@@ -48,14 +48,18 @@ interface output {
  * Convert 0.0-1.0 to voicemeeter gain of -60 to 12
  */ 
 function convertVolumeToGain(level: number) {
-  return (level * 72) - 60;
+  return (level * (60 + settings.maxdb)) - 60;
+  // Default values:
+  // return (level * 72) - 60;
 }
 
 /**
  * Convert -60-12 voicemeeter gain to 0.0-1.0
  */ 
 function convertGainToVolume(level: number) {
-  return (level + 60) / 72;
+  return (level + 60) / (60 + settings.maxdb);
+  // Default values:
+  // return (level + 60) / 72;
 }
 
 /**
@@ -102,8 +106,7 @@ const init_strips = (strips: outParam[]) => {
 
     strip[i].on("volumeChanged", (level: number) => {
       strip[i].volume = level;
-      let vol = Math.min(settings.maxdb, convertVolumeToGain(level));
-      vm.setStripParameter("gain",i, vol);
+      vm.setStripParameter("gain",i, convertVolumeToGain(level));
     });
     
     strip[i].on("mutePressed", () => {
@@ -138,8 +141,7 @@ const init_buses = (buses: outParam[]) => {
 
     bus[i].on("volumeChanged", (level: number) => {
       bus[i].volume = level;
-      let vol = Math.min(settings.maxdb, convertVolumeToGain(level));
-      vm.setBusParameter("gain", i, vol);
+      vm.setBusParameter("gain", i, convertVolumeToGain(level));
     });
     
     bus[i].on("mutePressed", () => {
