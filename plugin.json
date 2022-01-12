@@ -16,6 +16,10 @@
       "label": "Voicemeeter Status",
       "type": "status",
       "fallback": "Not connected"
+    },
+    "runbutton": {
+      "label": "run",
+      "type": "button"
     }
   },
   "author": "Jaggernaut"

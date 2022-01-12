@@ -1,9 +1,10 @@
-import { Assignment, ButtonType } from "midi-mixer-plugin";
-import {voicemeeter, outParam, VoicemeeterType} from "ts-easy-voicemeeter-remote";
+import { Assignment, Button, ButtonType } from "midi-mixer-plugin";
+import {voicemeeter, outParam, VoicemeeterType, InterfaceType, outParamData} from "ts-easy-voicemeeter-remote";
 let vm = new voicemeeter();
 let settings: Settings;
 let strip: eAssignment[] = [];
 let bus: eAssignment[] = [];
+let buttons: eButton[] = [];
 let stripCount = 0
 let busCount = 0;
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
@@ -16,32 +17,9 @@ class eAssignment extends Assignment {
   meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout
 }
 
-enum nmType {
-  // 3 input, 2 output
-  voicemeeter = 1,
-  // 5 input, 5 output
-  banana,
-  // 8 input, 8 output
-  potato
-}
-
-interface paramData {
-  inputs: input[]
-  outputs: output[]
-}
-interface input {
-  id: number
-  name: string
-  gain: number
-  solo: boolean
-  mute: boolean
-}
-interface output {
-  id: number
-  name: string
-  gain: number
-  mute: boolean
-  mono: boolean
+// buttons will need to define how they are updated
+class eButton extends ButtonType {
+  public update = (data: outParamData):void => {}
 }
 
 /**
@@ -76,7 +54,7 @@ function clampBar(value:number) {
  * @param version Detected version of voicemeeter
  */
 const setMeterCount = (version: VoicemeeterType) => {
-  log.info(`Detected ${nmType[version]}`)
+  log.info(`Detected ${VoicemeeterType[version]}`)
   switch (version) {
     case VoicemeeterType.voicemeeter:
       stripCount = 3;
@@ -94,6 +72,59 @@ const setMeterCount = (version: VoicemeeterType) => {
       stripCount = 0;
       busCount = 0;
   }
+}
+
+const init_button = (strips: outParam[]) => {
+  // a hardcode for aux on potato
+  let aux = strips[6];
+  console.log(aux);
+  let b = new eButton("Aux-A1",{
+    name: "Aux-A1",
+    active: !aux.A1
+  });
+
+  // outParam is currently allowing strip.An
+  // Maybe just generate the A/B values based on application type
+  // strips.forEach((strip) => {
+  // })
+  // generate solo/mono buttons
+  // are comp/gate/etc only available depending on application type?
+
+  b.on("pressed", () => {
+    b.active = !b.active;
+    // The library doesn't have good type supporting for these options
+    // first 0 is InterfaceType.strip (1 is bus)
+    vm.setStripParameter("A1", 6, !b.active);
+    // These functions aren't generated. Would need to fork the repo but it's probably fine to just use _setParameter
+    // voicemeeter.setStripA1(6, b.active);
+  });
+
+  // define when to update the button based on fresh params
+  b.update = (data) => {
+    b.active = !(data.strips[6].A1);
+  }
+  buttons.push(b);
+
+  let rbutton = new ButtonType("Restart-Voicemeeter", {
+    name: "Restart Voicemeeter",
+    active: true
+  });
+
+  // Do we need to track these buttons that don't change state?
+  // buttons.push(rbutton);
+
+  rbutton.on("pressed", () => {
+    try {
+      vm.sendRawParameterScript("Command.Restart=1");
+    }
+    catch (error: any) {
+      $MM.showNotification(error);
+      log.error(error);
+      console.log(error);
+      return;
+    }
+    $MM.showNotification("Restarted VoiceMeeter audio engine");
+  })
 }
 
 const init_strips = (strips: outParam[]) => {
@@ -178,6 +209,10 @@ const update_all = () => {
       bus[i.id].muted = i.mute;
       bus[i.id].volume = convertGainToVolume(i.gain);
     })
+    // include button updates here somehow
+    buttons.forEach(b => {
+      b.update(data);
+    })
   })
 }
 
@@ -193,11 +228,9 @@ const connectVM = async () => {
   setMeterCount(vminfo.type);
 
   await vm.getAllParameter().then((data) => {
-
-
-    let a = data.strips;
     init_strips(data.strips);
     init_buses(data.buses);
+    init_button(data.strips);
     update_all();
   
     clearInterval(vmUpdateInterval);
@@ -261,5 +294,7 @@ const init = async () => {
     $MM.showNotification("Unexpected error in Voicemeeter plugin initialization");
   }
 }
+
+$MM.onSettingsButtonPress("runbutton", init);
 
 init();
