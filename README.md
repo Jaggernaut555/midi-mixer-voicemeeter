@@ -12,4 +12,4 @@ If you've previously set up loopMIDI or similar software to pass midi commands t
 
 This package uses:
 - [midi-mixer-plugin](https://github.com/midi-mixer/midi-mixer-plugin)
-- [easy-voicemeeter-remote](https://github.com/steffenreimann/easy-voicemeeter-remote)
+- [ts-easy-voicemeeter-remote](https://github.com/Jaggernaut555/ts-easy-voicemeeter-remote)

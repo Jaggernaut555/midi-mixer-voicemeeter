@@ -1,12 +1,17 @@
 {
   "$schema": "./node_modules/midi-mixer-plugin/plugin.schema.json",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "id": "ca.jaggernaut.midi-mixer.voicemeeter",
   "name": "Voicemeeter",
   "type": "node",
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
   "settings": {
+    "maxdb": {
+      "label": "Max db. (Reload after changing this)",
+      "type": "text",
+      "fallback": "12"
+    },
     "vmstatus": {
       "label": "Voicemeeter Status",
       "type": "status",
