@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/midi-mixer-plugin/plugin.schema.json",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "id": "ca.jaggernaut.midi-mixer.voicemeeter",
   "name": "Voicemeeter",
   "type": "node",
