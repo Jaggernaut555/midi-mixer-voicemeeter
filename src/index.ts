@@ -120,7 +120,7 @@ const init_strips = (strips: outParam[]) => {
     
     strip[i].on("runPressed", () => {
       strip[i].running = !strip[i].running;
-      vm.setStripParameter("solo", i, strip[i].muted)
+      vm.setStripParameter("solo", i, strip[i].running)
     });
 
     clearInterval(strip[i].meterInterval);
