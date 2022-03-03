@@ -1,6 +1,6 @@
 import { Assignment, ButtonType } from "midi-mixer-plugin";
-import { voicemeeter, outParam, VoicemeeterType, InterfaceType, outParamData } from "ts-easy-voicemeeter-remote"; import { stripParamName } from "ts-easy-voicemeeter-remote/dist/voicemeeterUtils";
-let vm = new voicemeeter();
+import { VoiceMeeter, outParam, VoicemeeterType, InterfaceType, outParamData, VoiceMeeterLoginError, StripParamName } from "ts-easy-voicemeeter-remote";
+const vm = new VoiceMeeter();
 let settings: Settings;
 let strip: eAssignment[] = [];
 let bus: eAssignment[] = [];
@@ -9,6 +9,7 @@ let selectedBus: number | null = null;
 let stripCount = 0
 let busCount = 0;
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
+let retryTime = 5000;
 
 interface Settings {
   maxdb: number;
@@ -214,7 +215,7 @@ function update_all() {
       strip[i.id].muted = i.mute;
       strip[i.id].running = i.solo;
       if (selectedBus !== null) {
-        strip[i.id].volume = convertGainToVolume(i[`GainLayer[${selectedBus}]` as stripParamName]);
+        strip[i.id].volume = convertGainToVolume(i[`GainLayer[${selectedBus}]` as StripParamName]);
       }
       else {
         strip[i.id].volume = convertGainToVolume(i.gain);
@@ -223,30 +224,59 @@ function update_all() {
   });
 }
 
+function retryConnection() {
+  console.log(`Could not find running instance of voicemeeter, retrying in ${retryTime / 1000}s`);
+  $MM.setSettingsStatus("vmstatus", `Failed to connect to VoiceMeeter. Retrying in ${retryTime / 1000}s`)
+  setTimeout(() => {
+    init();
+  }, retryTime);
+  retryTime = retryTime * 2;
+  return;
+}
+
 async function connectVM() {
   $MM.setSettingsStatus("vmstatus", "Connecting");
 
-  vm.login();
+  try {
+    if (!vm.isLoggedIn) {
+      vm.login();
+    }
 
-  let vminfo = vm.getVoicemeeterInfo();
-  vm.updateDeviceList();
-  console.log(vm.inputDevices);
-  console.log(vm.outputDevices);
-  setMeterCount(vminfo.type);
+    if (!vm.testConnection()) {
+      retryConnection();
+      return;
+    }
 
-  await vm.getAllParameter().then((data) => {
-    init_strips(data.strips);
-    init_buses(data.buses);
-    init_buttons();
-    update_all();
+    let vminfo = vm.getVoicemeeterInfo();
+    vm.updateDeviceList();
+    console.log(vm.inputDevices);
+    console.log(vm.outputDevices);
+    setMeterCount(vminfo.type);
 
-    clearInterval(vmUpdateInterval);
-    vmUpdateInterval = setInterval(() => {
-      if (vm.isParametersDirty()) {
-        update_all();
-      }
-    }, 50)
-  })
+    await vm.getAllParameter().then((data) => {
+      init_strips(data.strips);
+      init_buses(data.buses);
+      init_buttons();
+      update_all();
+
+      clearInterval(vmUpdateInterval);
+      vmUpdateInterval = setInterval(() => {
+        if (vm.isParametersDirty()) {
+          update_all();
+        }
+      }, 50)
+    })
+  }
+  catch (err) {
+    console.log(err);
+    if (err instanceof VoiceMeeterLoginError && err.returnValue == 1) {
+      retryConnection();
+      return;
+    }
+    $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
+    $MM.showNotification("Voicemeeter Plugin failed to initialize.");
+    log.error(err);
+  }
 
   $MM.setSettingsStatus("vmstatus", "Connected");
 }
@@ -263,16 +293,12 @@ async function initVM() {
       .then(() => {
         $MM.setSettingsStatus("vmstatus", "Initialized");
 
-        connectVM().catch((error: any) => {
-          $MM.setSettingsStatus("vmstatus", "Failed to connect. Could not find running instance of Voicemeeter. Reactivate the plugin to try again.");
-          $MM.showNotification("Voicemeeter Plugin failed to connect.");
-          log.error(error);
-        })
+        connectVM();
       })
   }
   else if (vm.isInitialised && !vm.isConnected) {
-    vm.isInitialised = false;
-    initVM();
+    console.log("already initialized");
+    connectVM();
   }
 }
 
