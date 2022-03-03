@@ -195,14 +195,21 @@ function init_buses(buses: outParam[]) {
 
 function update_all() {
   vm.getAllParameter().then((data) => {
+    let anySelected = false;
     data.buses.forEach((i) => {
       bus[i.id].muted = i.mute;
       bus[i.id].volume = convertGainToVolume(i.gain);
       bus[i.id].assigned = i.Sel;
       if (i.Sel) {
         selectedBus = i.id;
+        anySelected = true;
       }
-    })
+    });
+
+    if (!anySelected) {
+      selectedBus = null;
+    }
+
     data.strips.forEach((i) => {
       strip[i.id].muted = i.mute;
       strip[i.id].running = i.solo;
@@ -212,8 +219,8 @@ function update_all() {
       else {
         strip[i.id].volume = convertGainToVolume(i.gain);
       }
-    })
-  })
+    });
+  });
 }
 
 async function connectVM() {
