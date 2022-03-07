@@ -1,5 +1,5 @@
 import { Assignment, ButtonType } from "midi-mixer-plugin";
-import { VoiceMeeter, outParam, VoicemeeterType, InterfaceType, outParamData, VoiceMeeterLoginError, StripParamName } from "ts-easy-voicemeeter-remote";
+import { VoiceMeeter, OutParam, VoiceMeeterType, InterfaceType, OutParamData, VoiceMeeterLoginError, StripParamName } from "ts-easy-voicemeeter-remote";
 const vm = new VoiceMeeter();
 let settings: Settings;
 let strip: eAssignment[] = [];
@@ -21,7 +21,7 @@ class eAssignment extends Assignment {
 
 // buttons will need to define how they are updated
 class eButton extends ButtonType {
-  public update = (data: outParamData): void => { }
+  public update = (data: OutParamData): void => { }
 }
 
 enum nmType {
@@ -64,18 +64,18 @@ function clampBar(value: number) {
  * 
  * @param version Detected version of voicemeeter
  */
-function setMeterCount(version: VoicemeeterType) {
+function setMeterCount(version: VoiceMeeterType) {
   log.info(`Detected ${nmType[version]}`)
   switch (version) {
-    case VoicemeeterType.voicemeeter:
+    case VoiceMeeterType.voiceMeeter:
       stripCount = 3;
       busCount = 2;
       break;
-    case VoicemeeterType.voicemeeterBanana:
+    case VoiceMeeterType.voiceMeeterBanana:
       stripCount = 5;
       busCount = 5;
       break;
-    case VoicemeeterType.voicemeeterPotato:
+    case VoiceMeeterType.voiceMeeterPotato:
       stripCount = 8;
       busCount = 8;
       break;
@@ -87,7 +87,7 @@ function setMeterCount(version: VoicemeeterType) {
 
 function init_buttons() {
   let restartButton = new ButtonType("RestartVoicemeeter", {
-    name: "Restart Voicemeeter",
+    name: "Restart VoiceMeeter",
     active: true
   });
 
@@ -105,7 +105,7 @@ function init_buttons() {
   })
 }
 
-function init_strips(strips: outParam[]) {
+function init_strips(strips: OutParam[]) {
   for (let i = 0; i < stripCount; i++) {
     strip[i] = new eAssignment(`Strip ${i}`, {
       name: `Strip ${i}: ${strips[i].name}`
@@ -143,7 +143,7 @@ function init_strips(strips: outParam[]) {
   }
 }
 
-function init_buses(buses: outParam[]) {
+function init_buses(buses: OutParam[]) {
   for (let i = 0; i < busCount; i++) {
     bus[i] = new eAssignment(`Bus ${i}`, {
       name: `Bus ${i}: ${buses[i].name}`
@@ -160,7 +160,7 @@ function init_buses(buses: outParam[]) {
     });
 
     // The "Select" feature only works on voicemeeter potato
-    if (vm.getVoicemeeterInfo().type == VoicemeeterType.voicemeeterPotato) {
+    if (vm.getVoiceMeeterInfo().type == VoiceMeeterType.voiceMeeterPotato) {
       bus[i].on("assignPressed", () => {
         bus[i].assigned = !bus[i].assigned;
         // It's possible through the SDK to select multiple bus at a time, but not through the voicemeeter UI
@@ -195,7 +195,7 @@ function init_buses(buses: outParam[]) {
 }
 
 function update_all() {
-  vm.getAllParameter().then((data) => {
+  vm.getAllParameters().then((data) => {
     let anySelected = false;
     data.buses.forEach((i) => {
       bus[i.id].muted = i.mute;
@@ -247,13 +247,13 @@ async function connectVM() {
       return;
     }
 
-    let vminfo = vm.getVoicemeeterInfo();
+    let vminfo = vm.getVoiceMeeterInfo();
     vm.updateDeviceList();
     console.log(vm.inputDevices);
     console.log(vm.outputDevices);
     setMeterCount(vminfo.type);
 
-    await vm.getAllParameter().then((data) => {
+    await vm.getAllParameters().then((data) => {
       init_strips(data.strips);
       init_buses(data.buses);
       init_buttons();
@@ -282,12 +282,12 @@ async function connectVM() {
 }
 
 async function initVM() {
-  if (!vm.isInitialised && !vm.isConnected) {
+  if (!vm.isInitialized && !vm.isConnected) {
     console.log("Attempting connection");
     await vm.init()
       .catch((error: any) => {
         $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
-        $MM.showNotification("Voicemeeter Plugin failed to initialize.");
+        $MM.showNotification("VoiceMeeter Plugin failed to initialize.");
         log.error(error);
       })
       .then(() => {
@@ -296,14 +296,14 @@ async function initVM() {
         connectVM();
       })
   }
-  else if (vm.isInitialised && !vm.isConnected) {
+  else if (vm.isInitialized && !vm.isConnected) {
     console.log("already initialized");
     connectVM();
   }
 }
 
 $MM.onClose(async () => {
-  if (vm.isInitialised && vm.isConnected) {
+  if (vm.isInitialized && vm.isConnected) {
     vm.logout();
   }
 })
