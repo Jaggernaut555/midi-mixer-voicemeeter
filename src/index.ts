@@ -16,7 +16,8 @@ interface Settings {
 }
 
 class eAssignment extends Assignment {
-  meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout
+  meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
+  updated: boolean = false;
 }
 
 // buttons will need to define how they are updated
@@ -108,12 +109,14 @@ function init_buttons() {
 function init_strips(strips: OutParam[]) {
   for (let i = 0; i < stripCount; i++) {
     strip[i] = new eAssignment(`Strip ${i}`, {
-      name: `Strip ${i}: ${strips[i].name}`
+      name: `Strip ${i}: ${strips[i].name}`,
+      throttle: 100,
     });
 
     strip[i].assigned = true;
 
     strip[i].on("volumeChanged", (level: number) => {
+      strip[i].updated = true;
       strip[i].volume = level;
       vm.setStripParameter("gain", i, convertVolumeToGain(level));
     });
@@ -146,10 +149,12 @@ function init_strips(strips: OutParam[]) {
 function init_buses(buses: OutParam[]) {
   for (let i = 0; i < busCount; i++) {
     bus[i] = new eAssignment(`Bus ${i}`, {
-      name: `Bus ${i}: ${buses[i].name}`
+      name: `Bus ${i}: ${buses[i].name}`,
+      throttle: 100,
     });
 
     bus[i].on("volumeChanged", (level: number) => {
+      bus[i].updated = true;
       bus[i].volume = level;
       vm.setBusParameter("gain", i, convertVolumeToGain(level));
     });
@@ -199,12 +204,15 @@ function update_all() {
     let anySelected = false;
     data.buses.forEach((i) => {
       bus[i.id].muted = i.mute;
-      bus[i.id].volume = convertGainToVolume(i.gain);
+      if (!bus[i.id].updated) {
+        bus[i.id].volume = convertGainToVolume(i.gain);
+      }
       bus[i.id].assigned = i.Sel;
       if (i.Sel) {
         selectedBus = i.id;
         anySelected = true;
       }
+      bus[i.id].updated = false
     });
 
     if (!anySelected) {
@@ -214,12 +222,18 @@ function update_all() {
     data.strips.forEach((i) => {
       strip[i.id].muted = i.mute;
       strip[i.id].running = i.solo;
-      if (selectedBus !== null) {
-        strip[i.id].volume = convertGainToVolume(i[`GainLayer[${selectedBus}]` as StripParamName]);
+      if (!strip[i.id].updated) {
+        if (selectedBus !== null) {
+          strip[i.id].volume = convertGainToVolume(i[`GainLayer[${selectedBus}]` as StripParamName]);
+        }
+        else {
+          let vol = convertGainToVolume(i.gain);
+          if (vol != strip[i.id].volume) {
+            strip[i.id].volume = vol;
+          }
+        }
       }
-      else {
-        strip[i.id].volume = convertGainToVolume(i.gain);
-      }
+      strip[i.id].updated = false
     });
   });
 }
