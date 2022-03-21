@@ -317,6 +317,7 @@ async function connectVM() {
     $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
     $MM.showNotification("Voicemeeter Plugin failed to initialize.");
     log.error(err);
+    return;
   }
 
   $MM.setSettingsStatus("vmstatus", "Connected");
@@ -330,6 +331,7 @@ async function initVM() {
         $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
         $MM.showNotification("VoiceMeeter Plugin failed to initialize.");
         log.error(error);
+        console.log(error);
       })
       .then(() => {
         $MM.setSettingsStatus("vmstatus", "Initialized");
