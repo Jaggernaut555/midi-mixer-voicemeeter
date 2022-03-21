@@ -1,6 +1,6 @@
 {
   "name": "ca.jaggernaut.midi-mixer.voicemeeter",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "private": true,
   "description": "A Voicemeeter plugin for MIDI Mixer.",
   "files": [
