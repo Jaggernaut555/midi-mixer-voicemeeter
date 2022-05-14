@@ -10,8 +10,17 @@
   "settings": {
     "maxdb": {
       "label": "Max db. (Reload after changing this)",
-      "type": "text",
-      "fallback": "12"
+      "type": "slider",
+      "min": -60,
+      "max": 12,
+      "fallback": 12
+    },
+    "mindb":{
+      "label": "Min db. (Reload after changing this)",
+      "type": "slider",
+      "min": -60,
+      "max": 12,
+      "fallback": -60
     },
     "vmstatus": {
       "label": "Voicemeeter Status",
