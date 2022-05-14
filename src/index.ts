@@ -13,6 +13,7 @@ let retryTime = 5000;
 
 interface Settings {
   maxdb: number;
+  mindb: number;
 }
 
 class eAssignment extends Assignment {
@@ -29,16 +30,18 @@ class eButton extends ButtonType {
  * Convert 0.0-1.0 to voicemeeter gain of -60 to 12
  */
 function convertVolumeToGain(level: number) {
-  return (level * (60 + settings.maxdb)) - 60;
+  return (level * (settings.maxdb - settings.mindb)) + settings.mindb;
   // Default values:
   // return (level * 72) - 60;
+  // 72 = total range from max to minimum values
+  // -60 = minimum value
 }
 
 /**
  * Convert -60-12 voicemeeter gain to 0.0-1.0
  */
 function convertGainToVolume(level: number) {
-  return (level + 60) / (60 + settings.maxdb);
+  return (level - settings.mindb) / (settings.maxdb - settings.mindb);
   // Default values:
   // return (level + 60) / 72;
 }
@@ -356,6 +359,7 @@ async function initSettings() {
   // "fallback" plugin setting doesn't seem to work
   settings = {
     maxdb: isNaN(parseFloat(config["maxdb"])) ? 12 : parseFloat(config["maxdb"]),
+    mindb: isNaN(parseFloat(config["mindb"])) ? -60 : parseFloat(config["mindb"]),
   }
 }
 

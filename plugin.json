@@ -3,15 +3,24 @@
   "id": "ca.jaggernaut.midi-mixer.voicemeeter",
   "name": "Voicemeeter",
   "type": "node",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "author": "Jaggernaut",
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
   "settings": {
     "maxdb": {
       "label": "Max db. (Reload after changing this)",
-      "type": "text",
-      "fallback": "12"
+      "type": "slider",
+      "fallback": 12,
+      "min": -60,
+      "max": 12
+    },
+    "mindb": {
+      "label": "Min db. (Reload after changing this)",
+      "type": "slider",
+      "fallback": -60,
+      "min": -60,
+      "max": 12
     },
     "vmstatus": {
       "label": "Voicemeeter Status",
