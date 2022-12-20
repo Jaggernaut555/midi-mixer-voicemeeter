@@ -166,7 +166,10 @@ function init_strips(strips: OutParam[]) {
       let rawlevel = vm.getLevelByID(2, i);
       let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
       let meterlevel = (averagelevel) / 60;
-      strip[i].meter = clampBar(meterlevel);
+      let clampedVal = clampBar(meterlevel);
+      if (clampedVal !== 0) {
+        strip[i].meter = clampedVal;
+      }
     }, strip[i].throttle);
   }
 }
@@ -219,7 +222,10 @@ function init_buses(buses: OutParam[]) {
       let rawlevel = vm.getLevelByID(3, i);
       let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
       let meterlevel = (averagelevel) / 60;
-      bus[i].meter = clampBar(meterlevel);
+      let clampedVal = clampBar(meterlevel);
+      if (clampedVal !== 0) {
+        bus[i].meter = clampedVal;
+      }
     }, bus[i].throttle);
   }
 }
