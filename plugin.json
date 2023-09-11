@@ -22,6 +22,11 @@
       "min": -60,
       "max": 12
     },
+    "BusToggles": {
+      "label": "Bus Toggles (Reload after changing this)",
+      "type": "text",
+      "fallback": "strip0:A1,!B2;strip1:A1"
+    },
     "vmstatus": {
       "label": "Voicemeeter Status",
       "type": "status",

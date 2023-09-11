@@ -1,12 +1,21 @@
 import { Assignment, ButtonType } from "midi-mixer-plugin";
-import { VoiceMeeter, OutParam, VoiceMeeterType, InterfaceType, OutParamData, VoiceMeeterLoginError, StripParamName } from "ts-easy-voicemeeter-remote";
+import {
+  VoiceMeeter,
+  OutParam,
+  VoiceMeeterType,
+  InterfaceType,
+  OutParamData,
+  VoiceMeeterLoginError,
+  StripParamName,
+} from "ts-easy-voicemeeter-remote";
+import { parseToggleButtons } from "./BusToggles";
 const vm = new VoiceMeeter();
 let settings: Settings;
-let strip: eAssignment[] = [];
-let bus: eAssignment[] = [];
-let buttons: eButton[] = [];
+const strip: eAssignment[] = [];
+const bus: eAssignment[] = [];
+const buttons: eButton[] = [];
 let selectedBus: number | null = null;
-let stripCount = 0
+let stripCount = 0;
 let busCount = 0;
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
 let retryTime = 5000;
@@ -14,23 +23,26 @@ let retryTime = 5000;
 interface Settings {
   maxdb: number;
   mindb: number;
+  busToggles: string;
 }
 
 class eAssignment extends Assignment {
   meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
-  updated: boolean = false;
+  updated = false;
 }
 
 // buttons will need to define how they are updated
 class eButton extends ButtonType {
-  public update = (data: OutParamData): void => { }
+  public update = (data: OutParamData): void => {
+    // do nothing by default
+  };
 }
 
 /**
  * Convert 0.0-1.0 to voicemeeter gain of -60 to 12
  */
 function convertVolumeToGain(level: number) {
-  return (level * (settings.maxdb - settings.mindb)) + settings.mindb;
+  return level * (settings.maxdb - settings.mindb) + settings.mindb;
   // Default values:
   // return (level * 72) - 60;
   // 72 = total range from max to minimum values
@@ -56,12 +68,12 @@ function clampBar(value: number) {
 
 /**
  * Set the amount of assignable items according to which version of voicemeeter was detected
- * 
+ *
  * @param version Detected version of voicemeeter
  */
 
 function setMeterCount(version: VoiceMeeterType) {
-  log.info(`Detected ${VoiceMeeterType[version]}`)
+  log.info(`Detected ${VoiceMeeterType[version]}`);
   switch (version) {
     case VoiceMeeterType.voiceMeeter:
       stripCount = 3;
@@ -82,53 +94,48 @@ function setMeterCount(version: VoiceMeeterType) {
 }
 
 function init_buttons(strips: OutParam[]) {
-  // a hardcode for aux on potato
-  let aux = strips[6];
-  console.log(aux);
-  let b = new eButton("Aux-A1",{
-    name: "Aux-A1",
-    active: !aux.A1
-  });
+  const toggleButtons = parseToggleButtons(settings.busToggles);
 
-  // outParam is currently allowing strip.An
-  // Maybe just generate the A/B values based on application type
-  // strips.forEach((strip) => {
-  // })
-  // generate solo/mono buttons
-  // are comp/gate/etc only available depending on application type?
+  for (const tb of toggleButtons) {
+    const tempStrip = strips[tb.Strip];
+    for (const b of tb.Busses) {
+      const tempButton = new eButton(`Strip${tb.Strip} -> ${b.Bus}`, {
+        name: `Strip${tb.Strip} -> ${b.Bus}`,
+        active: tempStrip[b.Bus] == b.LightState,
+      });
 
-  b.on("pressed", () => {
-    b.active = !b.active;
-    // The library doesn't have good type supporting for these options
-    // first 0 is InterfaceType.strip (1 is bus)
-    vm.setStripParameter("A1", 6, !b.active);
-    // These functions aren't generated. Would need to fork the repo but it's probably fine to just use _setParameter
-    // voicemeeter.setStripA1(6, b.active);
-  });
+      tempButton.on("pressed", () => {
+        tempButton.active = !tempButton.active;
+        vm.setStripParameter(
+          b.Bus,
+          tb.Strip,
+          tempButton.active == b.LightState
+        );
+      });
 
-  // define when to update the button based on fresh params
-  b.update = (data) => {
-    b.active = !(data.strips[6].A1);
+      tempButton.update = (data) => {
+        tempButton.active = data.strips[tb.Strip][b.Bus] == b.LightState;
+      };
+      buttons.push(tempButton);
+    }
   }
-  buttons.push(b);
 
-  let restartButton = new ButtonType("RestartVoicemeeter", {
+  const restartButton = new ButtonType("RestartVoicemeeter", {
     name: "Restart VoiceMeeter",
-    active: true
+    active: true,
   });
 
   restartButton.on("pressed", () => {
     try {
       vm.sendRawParameterScript("Command.Restart=1");
-    }
-    catch (error: any) {
+    } catch (error: any) {
       $MM.showNotification(error);
       log.error(error);
       console.log(error);
       return;
     }
     $MM.showNotification("Restarted VoiceMeeter audio engine");
-  })
+  });
 }
 
 function init_strips(strips: OutParam[]) {
@@ -148,7 +155,7 @@ function init_strips(strips: OutParam[]) {
 
     strip[i].on("mutePressed", () => {
       strip[i].muted = !strip[i].muted;
-      vm.setStripParameter("mute", i, strip[i].muted)
+      vm.setStripParameter("mute", i, strip[i].muted);
     });
 
     // No current need for the assign button on strips
@@ -158,15 +165,15 @@ function init_strips(strips: OutParam[]) {
 
     strip[i].on("runPressed", () => {
       strip[i].running = !strip[i].running;
-      vm.setStripParameter("solo", i, strip[i].running)
+      vm.setStripParameter("solo", i, strip[i].running);
     });
 
     clearInterval(strip[i].meterInterval);
     strip[i].meterInterval = setInterval(() => {
-      let rawlevel = vm.getLevelByID(2, i);
-      let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
-      let meterlevel = (averagelevel) / 60;
-      let clampedVal = clampBar(meterlevel);
+      const rawlevel = vm.getLevelByID(2, i);
+      const averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
+      const meterlevel = averagelevel / 60;
+      const clampedVal = clampBar(meterlevel);
       if (clampedVal !== 0) {
         strip[i].meter = clampedVal;
       }
@@ -198,11 +205,10 @@ function init_buses(buses: OutParam[]) {
         bus[i].assigned = !bus[i].assigned;
         // It's possible through the SDK to select multiple bus at a time, but not through the voicemeeter UI
         // I'd rather avoid the behaviour
-        let oldSelectedBus = selectedBus;
+        const oldSelectedBus = selectedBus;
         if (bus[i].assigned) {
           selectedBus = i;
-        }
-        else {
+        } else {
           selectedBus = null;
         }
         if (oldSelectedBus !== null && oldSelectedBus != i) {
@@ -219,10 +225,10 @@ function init_buses(buses: OutParam[]) {
 
     clearInterval(bus[i].meterInterval);
     bus[i].meterInterval = setInterval(() => {
-      let rawlevel = vm.getLevelByID(3, i);
-      let averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
-      let meterlevel = (averagelevel) / 60;
-      let clampedVal = clampBar(meterlevel);
+      const rawlevel = vm.getLevelByID(3, i);
+      const averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
+      const meterlevel = averagelevel / 60;
+      const clampedVal = clampBar(meterlevel);
       if (clampedVal !== 0) {
         bus[i].meter = clampedVal;
       }
@@ -243,7 +249,7 @@ function update_all() {
         selectedBus = i.id;
         anySelected = true;
       }
-      bus[i.id].updated = false
+      bus[i.id].updated = false;
     });
 
     if (!anySelected) {
@@ -255,28 +261,36 @@ function update_all() {
       strip[i.id].running = i.solo;
       if (!strip[i.id].updated) {
         if (selectedBus !== null) {
-          strip[i.id].volume = convertGainToVolume(i[`GainLayer[${selectedBus}]` as StripParamName]);
-        }
-        else {
-          let vol = convertGainToVolume(i.gain);
+          strip[i.id].volume = convertGainToVolume(
+            i[`GainLayer[${selectedBus}]` as StripParamName]
+          );
+        } else {
+          const vol = convertGainToVolume(i.gain);
           if (vol != strip[i.id].volume) {
             strip[i.id].volume = vol;
           }
         }
       }
-      strip[i.id].updated = false
+      strip[i.id].updated = false;
     });
 
     // include button updates here somehow
-    buttons.forEach(b => {
+    buttons.forEach((b) => {
       b.update(data);
-    })
+    });
   });
 }
 
 function retryConnection() {
-  console.log(`Could not find running instance of voicemeeter, retrying in ${retryTime / 1000}s`);
-  $MM.setSettingsStatus("vmstatus", `Failed to connect to VoiceMeeter. Retrying in ${retryTime / 1000}s`)
+  console.log(
+    `Could not find running instance of voicemeeter, retrying in ${
+      retryTime / 1000
+    }s`
+  );
+  $MM.setSettingsStatus(
+    "vmstatus",
+    `Failed to connect to VoiceMeeter. Retrying in ${retryTime / 1000}s`
+  );
   setTimeout(() => {
     init();
   }, retryTime);
@@ -297,7 +311,7 @@ async function connectVM() {
       return;
     }
 
-    let vminfo = vm.getVoiceMeeterInfo();
+    const vminfo = vm.getVoiceMeeterInfo();
     vm.updateDeviceList();
     console.log(vm.inputDevices);
     console.log(vm.outputDevices);
@@ -314,16 +328,18 @@ async function connectVM() {
         if (vm.isParametersDirty()) {
           update_all();
         }
-      }, 50)
-    })
-  }
-  catch (err) {
+      }, 50);
+    });
+  } catch (err) {
     console.log(err);
     if (err instanceof VoiceMeeterLoginError && err.returnValue == 1) {
       retryConnection();
       return;
     }
-    $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
+    $MM.setSettingsStatus(
+      "vmstatus",
+      "Failed to initialize. Likely could not find voicemeeter installation."
+    );
     $MM.showNotification("Voicemeeter Plugin failed to initialize.");
     log.error(err);
     return;
@@ -335,9 +351,13 @@ async function connectVM() {
 async function initVM() {
   if (!vm.isInitialized && !vm.isConnected) {
     console.log("Attempting connection");
-    await vm.init()
+    await vm
+      .init()
       .catch((error: any) => {
-        $MM.setSettingsStatus("vmstatus", "Failed to initialize. Likely could not find voicemeeter installation.");
+        $MM.setSettingsStatus(
+          "vmstatus",
+          "Failed to initialize. Likely could not find voicemeeter installation."
+        );
         $MM.showNotification("VoiceMeeter Plugin failed to initialize.");
         log.error(error);
         console.log(error);
@@ -346,9 +366,8 @@ async function initVM() {
         $MM.setSettingsStatus("vmstatus", "Initialized");
 
         connectVM();
-      })
-  }
-  else if (vm.isInitialized && !vm.isConnected) {
+      });
+  } else if (vm.isInitialized && !vm.isConnected) {
     console.log("already initialized");
     connectVM();
   }
@@ -358,26 +377,35 @@ $MM.onClose(async () => {
   if (vm.isInitialized && vm.isConnected) {
     vm.logout();
   }
-})
+});
 
 async function initSettings() {
-  let config: Record<string, any> = await $MM.getSettings();
+  const config: Record<string, any> = await $MM.getSettings();
   // "fallback" plugin setting doesn't seem to work
   settings = {
-    maxdb: isNaN(parseFloat(config["maxdb"])) ? 12 : parseFloat(config["maxdb"]),
-    mindb: isNaN(parseFloat(config["mindb"])) ? -60 : parseFloat(config["mindb"]),
-  }
+    maxdb: isNaN(parseFloat(config["maxdb"]))
+      ? 12
+      : parseFloat(config["maxdb"]),
+    mindb: isNaN(parseFloat(config["mindb"]))
+      ? -60
+      : parseFloat(config["mindb"]),
+    busToggles: config["BusToggles"],
+  };
 }
 
 async function init() {
   try {
     initSettings();
     await initVM();
-  }
-  catch (error) {
+  } catch (error) {
     log.error(error);
-    $MM.setSettingsStatus("vmstatus", "Unexpected error in Voicemeeter plugin initialization");
-    $MM.showNotification("Unexpected error in Voicemeeter plugin initialization");
+    $MM.setSettingsStatus(
+      "vmstatus",
+      "Unexpected error in Voicemeeter plugin initialization"
+    );
+    $MM.showNotification(
+      "Unexpected error in Voicemeeter plugin initialization"
+    );
   }
 }
 
