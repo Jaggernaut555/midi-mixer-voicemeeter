@@ -1,6 +1,6 @@
 # Voicemeeter
 
-Control Voicemeeter Strips and Busses via midi-mixer. Works with Voicemeeter, Voicemeeter Banana, and Voicemeeter Potato
+Control Voicemeeter Strips and Buses via midi-mixer. Works with Voicemeeter, Voicemeeter Banana, and Voicemeeter Potato
 
 
 ## Installing
