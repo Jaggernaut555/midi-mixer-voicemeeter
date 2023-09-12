@@ -13,7 +13,6 @@ export function init_strips(strips: OutParam[]): void {
       throttle: 100,
     });
 
-
     strip[i].on("volumeChanged", (level: number) => {
       strip[i].updated = true;
       strip[i].volume = level;
@@ -23,7 +22,7 @@ export function init_strips(strips: OutParam[]): void {
     if (customAssignOptions.busToggles.length != 0) {
       // assign state based on whatever the first option is
       // I don't see a good solution for if it should be on or off
-      strip[i].assigned = strips[i][customAssignOptions.busToggles[0].Bus];
+      strip[i].assigned = getStripLightState(customAssignOptions, strips[i]);
 
       strip[i].on("assignPressed", () => {
         strip[i].assigned = !strip[i].assigned;
@@ -38,7 +37,7 @@ export function init_strips(strips: OutParam[]): void {
       });
 
       strip[i].customAssignUpdate = (data: OutParam) => {
-        strip[i].assigned = data[customAssignOptions.busToggles[0].Bus];
+        strip[i].assigned = getStripLightState(customAssignOptions, data);
       };
     } else {
       strip[i].assigned = true;
@@ -49,9 +48,7 @@ export function init_strips(strips: OutParam[]): void {
     }
 
     if (customMuteOptions.busToggles.length != 0) {
-      strip[i].muted =
-        strips[i][customMuteOptions.busToggles[0].Bus] ==
-        customMuteOptions.baseLightState;
+      strip[i].muted = getStripLightState(customMuteOptions, strips[i]);
 
       strip[i].on("mutePressed", () => {
         console.log("mute pressed");
@@ -66,9 +63,7 @@ export function init_strips(strips: OutParam[]): void {
       });
 
       strip[i].customMuteUpdate = (data: OutParam) => {
-        strip[i].muted =
-          data[customMuteOptions.busToggles[0].Bus] ==
-          customMuteOptions.baseLightState;
+        strip[i].muted = getStripLightState(customMuteOptions, data);
       };
     } else {
       strip[i].on("mutePressed", () => {
@@ -78,7 +73,7 @@ export function init_strips(strips: OutParam[]): void {
     }
 
     if (customRunOptions.busToggles.length != 0) {
-      strip[i].running = strips[i][customRunOptions.busToggles[0].Bus];
+      strip[i].running = getStripLightState(customRunOptions, strips[i]);
 
       strip[i].on("runPressed", () => {
         strip[i].running = !strip[i].running;
@@ -93,7 +88,7 @@ export function init_strips(strips: OutParam[]): void {
       });
 
       strip[i].customRunUpdate = (data: OutParam) => {
-        strip[i].running = data[customRunOptions.busToggles[0].Bus];
+        strip[i].running = getStripLightState(customRunOptions, data);
       };
     } else {
       strip[i].on("runPressed", () => {
@@ -117,17 +112,27 @@ export function init_strips(strips: OutParam[]): void {
 
 interface customStripInfo {
   busToggles: BusOptions[];
-  baseLightState: boolean;
 }
 
 interface BusOptions {
   invertState: boolean;
   Bus: StripParamName;
 }
+
+function getStripLightState(strip: customStripInfo, data: OutParam): boolean {
+  let lightState = true;
+  for (const info of strip.busToggles) {
+    if (data[info.Bus] != info.invertState) {
+      lightState = false;
+    }
+  }
+
+  return lightState;
+}
+
 function parseCustomStrip(rawText: string): customStripInfo {
   if (!rawText) {
     return {
-      baseLightState: false,
       busToggles: [],
     };
   }
@@ -152,7 +157,6 @@ function parseCustomStrip(rawText: string): customStripInfo {
   console.log(options);
 
   return {
-    baseLightState: options[0]?.invertState,
     busToggles: options,
   };
 }
