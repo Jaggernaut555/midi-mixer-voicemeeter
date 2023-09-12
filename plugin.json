@@ -3,14 +3,14 @@
   "id": "ca.jaggernaut.midi-mixer.voicemeeter",
   "name": "Voicemeeter",
   "type": "node",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "author": "Jaggernaut",
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
   "settings": {
     "notes": {
-      "type": "status",
       "label": "Note",
+      "type": "status",
       "fallback": "Reload plugin after changing any of these settings. Check the info tab for explanations of the customization options."
     },
     "maxdb": {
@@ -28,16 +28,16 @@
       "max": 12
     },
     "customStripAssign": {
-      "type": "text",
-      "label": "Custom Strip Assign"
+      "label": "Custom Strip Assign",
+      "type": "text"
     },
     "customStripMute": {
-      "type": "text",
-      "label": "Custom Strip Mute"
+      "label": "Custom Strip Mute",
+      "type": "text"
     },
     "customStripRun": {
-      "type": "text",
-      "label": "Custom Strip Run"
+      "label": "Custom Strip Run",
+      "type": "text"
     },
     "BusToggles": {
       "label": "Custom Bus Toggle Buttons",
