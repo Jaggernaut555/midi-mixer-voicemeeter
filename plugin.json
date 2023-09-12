@@ -8,22 +8,39 @@
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
   "settings": {
+    "notes": {
+      "type": "status",
+      "label": "Note",
+      "fallback": "Reload plugin after changing any of these settings. Check the info tab for explanations of the customization options."
+    },
     "maxdb": {
-      "label": "Max db. (Reload after changing this)",
+      "label": "Max db",
       "type": "slider",
       "fallback": 12,
       "min": -60,
       "max": 12
     },
     "mindb": {
-      "label": "Min db. (Reload after changing this)",
+      "label": "Min db",
       "type": "slider",
       "fallback": -60,
       "min": -60,
       "max": 12
     },
+    "customStripAssign": {
+      "type": "text",
+      "label": "Custom Strip Assign"
+    },
+    "customStripMute": {
+      "type": "text",
+      "label": "Custom Strip Mute"
+    },
+    "customStripRun": {
+      "type": "text",
+      "label": "Custom Strip Run"
+    },
     "BusToggles": {
-      "label": "Bus Toggles (Reload after changing this)",
+      "label": "Custom Bus Toggle Buttons",
       "type": "text",
       "fallback": "strip0:A1,!B2;strip1:A1"
     },

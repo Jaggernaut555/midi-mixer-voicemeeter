@@ -1,108 +1,45 @@
-import { Assignment, ButtonType } from "midi-mixer-plugin";
+import { ButtonType } from "midi-mixer-plugin";
 import {
-  VoiceMeeter,
   OutParam,
   VoiceMeeterType,
-  InterfaceType,
-  OutParamData,
   VoiceMeeterLoginError,
   StripParamName,
 } from "ts-easy-voicemeeter-remote";
 import { parseToggleButtons } from "./BusToggles";
-const vm = new VoiceMeeter();
-let settings: Settings;
-const strip: eAssignment[] = [];
-const bus: eAssignment[] = [];
-const buttons: eButton[] = [];
+import {
+  strip,
+  bus,
+  buttons,
+  eButton,
+  eAssignment,
+  busCount,
+  setMeterCount,
+  settings,
+  initSettings,
+  vm,
+} from "./context";
+import { init_strips } from "./strips";
+import { clampBar, convertGainToVolume, convertVolumeToGain } from "./utils";
+
 let selectedBus: number | null = null;
-let stripCount = 0;
-let busCount = 0;
+
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
 let retryTime = 5000;
 
-interface Settings {
-  maxdb: number;
-  mindb: number;
-  busToggles: string;
-}
-
-class eAssignment extends Assignment {
-  meterInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
-  updated = false;
-}
-
-// buttons will need to define how they are updated
-class eButton extends ButtonType {
-  public update = (data: OutParamData): void => {
-    // do nothing by default
-  };
-}
-
-/**
- * Convert 0.0-1.0 to voicemeeter gain of -60 to 12
- */
-function convertVolumeToGain(level: number) {
-  return level * (settings.maxdb - settings.mindb) + settings.mindb;
-  // Default values:
-  // return (level * 72) - 60;
-  // 72 = total range from max to minimum values
-  // -60 = minimum value
-}
-
-/**
- * Convert -60-12 voicemeeter gain to 0.0-1.0
- */
-function convertGainToVolume(level: number) {
-  return (level - settings.mindb) / (settings.maxdb - settings.mindb);
-  // Default values:
-  // return (level + 60) / 72;
-}
-
-/**
- * Clamp between 0 and 1 for midi mixer volume/peak levels
- * @param value
- */
-function clampBar(value: number) {
-  return Math.min(Math.max(0, value), 1);
-}
-
-/**
- * Set the amount of assignable items according to which version of voicemeeter was detected
- *
- * @param version Detected version of voicemeeter
- */
-
-function setMeterCount(version: VoiceMeeterType) {
-  log.info(`Detected ${VoiceMeeterType[version]}`);
-  switch (version) {
-    case VoiceMeeterType.voiceMeeter:
-      stripCount = 3;
-      busCount = 2;
-      break;
-    case VoiceMeeterType.voiceMeeterBanana:
-      stripCount = 5;
-      busCount = 5;
-      break;
-    case VoiceMeeterType.voiceMeeterPotato:
-      stripCount = 8;
-      busCount = 8;
-      break;
-    default:
-      stripCount = 0;
-      busCount = 0;
-  }
-}
 
 function init_buttons(strips: OutParam[]) {
   const toggleButtons = parseToggleButtons(settings.busToggles);
 
   for (const tb of toggleButtons) {
     const tempStrip = strips[tb.Strip];
-    for (const b of tb.Busses) {
-      const tempButton = new eButton(`Strip${tb.Strip} -> ${b.Bus}`, {
-        name: `Strip${tb.Strip} -> ${b.Bus}`,
-        active: tempStrip[b.Bus] == b.LightState,
-      });
+    for (const b of tb.Buses) {
+      const tempButton = new eButton(
+        `Strip${tb.Strip} -> ${b.LightState ? "" : "!"}${b.Bus}`,
+        {
+          name: `Strip${tb.Strip} -> ${b.LightState ? "" : "!"}${b.Bus}`,
+          active: tempStrip[b.Bus] == b.LightState,
+        }
+      );
 
       tempButton.on("pressed", () => {
         tempButton.active = !tempButton.active;
@@ -138,48 +75,6 @@ function init_buttons(strips: OutParam[]) {
   });
 }
 
-function init_strips(strips: OutParam[]) {
-  for (let i = 0; i < stripCount; i++) {
-    strip[i] = new eAssignment(`Strip ${i}`, {
-      name: `Strip ${i}: ${strips[i].name}`,
-      throttle: 100,
-    });
-
-    strip[i].assigned = true;
-
-    strip[i].on("volumeChanged", (level: number) => {
-      strip[i].updated = true;
-      strip[i].volume = level;
-      vm.setStripParameter("gain", i, convertVolumeToGain(level));
-    });
-
-    strip[i].on("mutePressed", () => {
-      strip[i].muted = !strip[i].muted;
-      vm.setStripParameter("mute", i, strip[i].muted);
-    });
-
-    // No current need for the assign button on strips
-    // strip[i].on("assignPressed", () => {
-    //   strip[i].assigned = !strip[i].assigned;
-    // });
-
-    strip[i].on("runPressed", () => {
-      strip[i].running = !strip[i].running;
-      vm.setStripParameter("solo", i, strip[i].running);
-    });
-
-    clearInterval(strip[i].meterInterval);
-    strip[i].meterInterval = setInterval(() => {
-      const rawlevel = vm.getLevelByID(2, i);
-      const averagelevel = ((rawlevel?.r ?? 0) + (rawlevel?.l ?? 0)) / 2;
-      const meterlevel = averagelevel / 60;
-      const clampedVal = clampBar(meterlevel);
-      if (clampedVal !== 0) {
-        strip[i].meter = clampedVal;
-      }
-    }, strip[i].throttle);
-  }
-}
 
 function init_buses(buses: OutParam[]) {
   for (let i = 0; i < busCount; i++) {
@@ -218,7 +113,7 @@ function init_buses(buses: OutParam[]) {
       });
     }
 
-    // No current use for run button on busses
+    // No current use for run button on buses
     // bus[i].on("runPressed", () => {
     //   bus[i].running = !bus[i].running;
     // });
@@ -257,8 +152,24 @@ function update_all() {
     }
 
     data.strips.forEach((i) => {
-      strip[i.id].muted = i.mute;
-      strip[i.id].running = i.solo;
+      if (strip[i.id].customAssignUpdate !== undefined) {
+        strip[i.id].customAssignUpdate?.(i);
+      } else {
+        // No default update for assign
+      }
+
+      if (strip[i.id].customMuteUpdate !== undefined) {
+        strip[i.id].customMuteUpdate?.(i);
+      } else {
+        strip[i.id].muted = i.mute;
+      }
+
+      if (strip[i.id].customRunUpdate !== undefined) {
+        strip[i.id].customRunUpdate?.(i);
+      } else {
+        strip[i.id].running = i.solo;
+      }
+
       if (!strip[i.id].updated) {
         if (selectedBus !== null) {
           strip[i.id].volume = convertGainToVolume(
@@ -283,8 +194,7 @@ function update_all() {
 
 function retryConnection() {
   console.log(
-    `Could not find running instance of voicemeeter, retrying in ${
-      retryTime / 1000
+    `Could not find running instance of voicemeeter, retrying in ${retryTime / 1000
     }s`
   );
   $MM.setSettingsStatus(
@@ -378,20 +288,6 @@ $MM.onClose(async () => {
     vm.logout();
   }
 });
-
-async function initSettings() {
-  const config: Record<string, any> = await $MM.getSettings();
-  // "fallback" plugin setting doesn't seem to work
-  settings = {
-    maxdb: isNaN(parseFloat(config["maxdb"]))
-      ? 12
-      : parseFloat(config["maxdb"]),
-    mindb: isNaN(parseFloat(config["mindb"]))
-      ? -60
-      : parseFloat(config["mindb"]),
-    busToggles: config["BusToggles"],
-  };
-}
 
 async function init() {
   try {

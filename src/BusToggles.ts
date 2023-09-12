@@ -1,16 +1,8 @@
-import {
-  VoiceMeeter,
-  OutParam,
-  VoiceMeeterType,
-  InterfaceType,
-  OutParamData,
-  VoiceMeeterLoginError,
-  StripParamName,
-} from "ts-easy-voicemeeter-remote";
+import { StripParamName } from "ts-easy-voicemeeter-remote";
 
 interface BusToggle {
   Strip: number;
-  Busses: BusOptions[];
+  Buses: BusOptions[];
 }
 
 interface BusOptions {
@@ -23,7 +15,6 @@ export function parseToggleButtons(rawText: string): BusToggle[] {
 
   const busToggles: BusToggle[] = [];
   for (const line of textOptions) {
-    console.log(line);
     const parts = line.split(":");
     if (parts.length != 2) {
       continue;
@@ -36,10 +27,10 @@ export function parseToggleButtons(rawText: string): BusToggle[] {
     }
     const stripNumber = parseInt(stripInfo[1]);
 
-    const busses = parts[1].split(",");
+    const buses = parts[1].split(",");
 
     const bo: BusOptions[] = [];
-    for (let bus of busses) {
+    for (let bus of buses) {
       let lightState = true;
       if (/^!/.test(bus)) {
         lightState = false;
@@ -54,13 +45,11 @@ export function parseToggleButtons(rawText: string): BusToggle[] {
 
     const bt: BusToggle = {
       Strip: stripNumber,
-      Busses: bo,
+      Buses: bo,
     };
 
     busToggles.push(bt);
   }
-
-  console.log(busToggles);
 
   return busToggles;
 }
