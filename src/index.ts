@@ -213,7 +213,7 @@ function retryConnection() {
     `Failed to connect to VoiceMeeter. Retrying in ${retryTime / 1000}s`
   );
   setTimeout(() => {
-    init();
+    initVoicemeeterPlugin();
   }, retryTime);
   retryTime = retryTime * 2;
   return;
@@ -300,7 +300,7 @@ $MM.onClose(async () => {
   }
 });
 
-async function init() {
+export async function initVoicemeeterPlugin(): Promise<void> {
   try {
     initSettings();
     await initVM();
@@ -316,6 +316,6 @@ async function init() {
   }
 }
 
-$MM.onSettingsButtonPress("runbutton", init);
+$MM.onSettingsButtonPress("runbutton", initVoicemeeterPlugin);
 
-init();
+initVoicemeeterPlugin();
