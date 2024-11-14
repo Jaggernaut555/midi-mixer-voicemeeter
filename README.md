@@ -36,6 +36,9 @@ Custom Bus Toggle Buttons:
 
 This will add three buttons. Button 1 will be named `strip0 -> A1` and will toggle bus A1 on only strip 0. Button 2 will be named `strip0 -> !B1` and will toggle bus B1 on strip 0. The `!` will invert the light's on/off state from the enabled/disabled state of the bus assignment. The third button will be named `strip1 -> A1` and will toggle bus A1 on strip 1.
 
+#### Strip Limiter Groups
+
+This adds new groups to assign to faders that will control the Limit setting on individual strips
 
 ## Other Info
 
