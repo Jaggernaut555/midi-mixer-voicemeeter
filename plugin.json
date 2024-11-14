@@ -3,7 +3,7 @@
   "id": "ca.jaggernaut.midi-mixer.voicemeeter",
   "name": "Voicemeeter",
   "type": "node",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "author": "Jaggernaut",
   "main": "lib/index.js",
   "icon": "voicemeeter.ico",
