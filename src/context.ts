@@ -24,6 +24,7 @@ export class eButton extends ButtonType {
 }
 
 export const strip: eAssignment[] = [];
+export const stripLimiters: eAssignment[] = [];
 export const bus: eAssignment[] = [];
 export const buttons: eButton[] = [];
 
@@ -63,6 +64,7 @@ interface Settings {
   customStripAssign: string;
   customStripMute: string;
   customStripRun: string;
+  stripLimitGroups: boolean;
 }
 
 export let settings: Settings;
@@ -81,6 +83,7 @@ export async function initSettings(): Promise<void> {
     customStripAssign: config["customStripAssign"],
     customStripMute: config["customStripMute"],
     customStripRun: config["customStripRun"],
+    stripLimitGroups: config["enableStripLimits"],
   };
   console.log(settings);
 }

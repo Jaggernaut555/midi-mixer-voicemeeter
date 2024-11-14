@@ -17,15 +17,15 @@ import {
   settings,
   initSettings,
   vm,
+  stripLimiters,
 } from "./context";
 import { init_strips } from "./strips";
-import { clampBar, convertGainToVolume, convertVolumeToGain } from "./utils";
+import { clampBar, convertGainToVolume, convertLimitToVolume, convertVolumeToGain } from "./utils";
 
 let selectedBus: number | null = null;
 
 let vmUpdateInterval: NodeJS.Timeout = {} as NodeJS.Timeout;
 let retryTime = 5000;
-
 
 function init_buttons(strips: OutParam[]) {
   const toggleButtons = parseToggleButtons(settings.busToggles);
@@ -74,7 +74,6 @@ function init_buttons(strips: OutParam[]) {
     $MM.showNotification("Restarted VoiceMeeter audio engine");
   });
 }
-
 
 function init_buses(buses: OutParam[]) {
   for (let i = 0; i < busCount; i++) {
@@ -183,6 +182,18 @@ function update_all() {
         }
       }
       strip[i.id].updated = false;
+
+      if (settings.stripLimitGroups) {
+        if (!stripLimiters[i.id].updated) {
+          if (i.Limit !== null) {
+            const limit = convertLimitToVolume(i.Limit);
+            stripLimiters[i.id].volume = limit;
+          } else {
+            stripLimiters[i.id].volume = 1.0;
+          }
+        }
+        stripLimiters[i.id].updated = false;
+      }
     });
 
     // include button updates here somehow

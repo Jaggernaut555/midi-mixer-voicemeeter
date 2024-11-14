@@ -27,3 +27,21 @@ export function convertGainToVolume(level: number): number {
 export function clampBar(value: number): number {
   return Math.min(Math.max(0, value), 1);
 }
+
+/**
+ * Convert 0.0-1.0 to -40 to 12
+ * @param value midi mixer volume level
+ */
+export function convertVolumeToLimit(level: number): number {
+  const newLevel: number = level * 52 - 40;
+  return newLevel;
+}
+
+/**
+ * Convert -40 to 12 into 0.0-1.0
+ * @param value voicemeeter limit.
+ */
+export function convertLimitToVolume(level: number): number {
+  const newLevel: number = (level + 40) / 52;
+  return newLevel;
+}

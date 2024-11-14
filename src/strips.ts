@@ -1,11 +1,12 @@
 import { OutParam, StripParamName } from "ts-easy-voicemeeter-remote";
-import { eAssignment, strip, stripCount, vm, settings } from "./context";
-import { clampBar, convertVolumeToGain } from "./utils";
+import { eAssignment, strip, stripCount, vm, settings, stripLimiters } from "./context";
+import { clampBar, convertVolumeToGain, convertVolumeToLimit } from "./utils";
 
 export function init_strips(strips: OutParam[]): void {
   const customAssignOptions = parseCustomStrip(settings.customStripAssign);
   const customMuteOptions = parseCustomStrip(settings.customStripMute);
   const customRunOptions = parseCustomStrip(settings.customStripRun);
+  const enableLimitGroups = settings.stripLimitGroups;
 
   for (let i = 0; i < stripCount; i++) {
     strip[i] = new eAssignment(`Strip ${i}`, {
@@ -107,6 +108,19 @@ export function init_strips(strips: OutParam[]): void {
         strip[i].meter = clampedVal;
       }
     }, strip[i].throttle);
+
+    if (enableLimitGroups) {
+      stripLimiters[i] = new eAssignment(`Strip ${i} Limiter`, {
+        name: `Strip ${i} Limiter: ${strips[i].name}`,
+        throttle: 100,
+      });
+
+      stripLimiters[i].on("volumeChanged", (level: number) => {
+        stripLimiters[i].updated = true;
+        stripLimiters[i].volume = level;
+        vm.setStripParameter("Limit", i, convertVolumeToLimit(level));
+      });
+    }
   }
 }
 

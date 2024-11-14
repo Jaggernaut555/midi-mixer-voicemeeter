@@ -39,6 +39,11 @@
       "label": "Custom Strip Run",
       "type": "text"
     },
+    "enableStripLimits": {
+      "label": "Enable Strip Limiter Groups",
+      "type": "toggle",
+      "fallback": false
+    },
     "BusToggles": {
       "label": "Custom Bus Toggle Buttons",
       "type": "text",
