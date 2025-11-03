@@ -263,6 +263,7 @@ async function connectVM() {
     );
     $MM.showNotification("Voicemeeter Plugin failed to initialize.");
     log.error(err);
+    console.log(err);
     return;
   }
 
@@ -302,7 +303,7 @@ $MM.onClose(async () => {
 
 export async function initVoicemeeterPlugin(): Promise<void> {
   try {
-    initSettings();
+    await initSettings();
     await initVM();
   } catch (error) {
     log.error(error);
