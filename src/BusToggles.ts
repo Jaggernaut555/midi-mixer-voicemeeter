@@ -29,6 +29,9 @@ export function parseToggleButtons(rawText: string): BusToggle[] {
 
     const buses = parts[1].split(",");
 
+    // TODO: Add support for `strip0:B1+B2` to control multiple buses with one button assignment.
+    // This would be customizable on a per strip assignment compared to Custom Strip Assign
+
     const bo: BusOptions[] = [];
     for (let bus of buses) {
       let lightState = true;
